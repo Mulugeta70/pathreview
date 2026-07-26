@@ -30,7 +30,7 @@ if Redis is unreachable.
 
 ## Week 8 — Reproduction & solution planning
 
-**Reproduction commit link:** [to be filled in after commit — see below]
+**Reproduction commit link:** https://github.com/Mulugeta70/pathreview/commit/a6bc4d35ea9c9074c12ed34b48aa76fcbd805fb8
 
 **Reproduction summary:**
 Added `tests/unit/test_health_safety_events.py`, which mocks Redis to
@@ -45,8 +45,7 @@ found and documented (in PLAN.md, out of scope for this fix) that
 `redis_url`, which makes `health.py`'s real Redis dependency check always
 fail with a silently-swallowed `AttributeError`.
 
-**PLAN.md link:** [PLAN.md](./PLAN.md) (root of this fork, branch
-`fix/68-safety-events-health-check`)
+**PLAN.md link:** https://github.com/Mulugeta70/pathreview/blob/fix/68-safety-events-health-check/PLAN.md
 
 **Walkthrough video (recommended):**
 
