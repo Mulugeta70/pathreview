@@ -47,7 +47,8 @@ fail with a silently-swallowed `AttributeError`.
 
 **PLAN.md link:** https://github.com/Mulugeta70/pathreview/blob/fix/68-safety-events-health-check/PLAN.md
 
-**Walkthrough video (recommended):**
+**Walkthrough video (recommended):** Not recorded this week — reproduction
+and plan are captured above and in PLAN.md instead.
 
 **Blockers or open questions:**
 Need to confirm with a mentor whether the `redis_host`/`redis_port` vs
