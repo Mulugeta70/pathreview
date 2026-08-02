@@ -152,3 +152,27 @@ Files expected to be touched:
   `get_event_count` should handle normal integer ranges fine; no special
   handling anticipated, but worth a quick sanity check with a large mocked
   value.
+
+### Resolution
+
+Implemented as described in Plan steps 1–3, with these calls made on the
+open risks/unknowns above:
+
+- **`redis_host`/`redis_port` bug:** left as a separate, pre-existing bug.
+  The safety-events block builds its own client via
+  `redis.Redis.from_url(settings.redis_url, ...)`, independent of the
+  broken `redis_host`/`redis_port` construction in the dependency check
+  above it, so the fix doesn't need that bug fixed as a prerequisite.
+- **"Last hour" windowing:** kept the honest-comment path, not a storage
+  rework. `get_total_event_count`'s docstring and the call site in
+  `health.py` both note that counts reflect `SafetyMonitor`'s flat 24-hour
+  TTL, not a true rolling hour — reworking the Redis key scheme to bucket
+  by hour would touch `log_event` and is flagged as a follow-up, not done
+  here.
+- **Redis failure handling:** confirmed via the edge-case tests — a Redis
+  error while counting safety events degrades `safety_events_last_hour` to
+  `0` and does not flip `health_status["status"]` to `"unhealthy"`.
+- **Test coverage:** added unit tests only (`tests/unit/test_health_safety_events.py`,
+  `tests/unit/test_safety_monitoring.py`), with mocked Redis. Did not add
+  anything under `tests/integration/` — no existing pattern there to match
+  and out of scope for this fix.
