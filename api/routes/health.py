@@ -81,12 +81,26 @@ async def health_check(db: AsyncSession = Depends(get_db)) -> dict[str, Any]:  #
         health_status["dependencies"]["vector_db"] = "unhealthy"
         health_status["status"] = "unhealthy"
 
-    # Count safety events in last hour (placeholder)
+    # Count safety events across all event types (PII, injection, content
+    # filtering, bias, rate limiting). Uses its own Redis client via
+    # `settings.redis_url` rather than the `redis_host`/`redis_port` pair
+    # above (see the NOTE on the Redis dependency check) so this count
+    # doesn't inherit that pre-existing connection bug. A failure here is
+    # logged and degrades the count to 0 without affecting overall
+    # `health_status["status"]` -- a quiet safety subsystem isn't itself a
+    # health-check failure the way a down Postgres is.
     try:
-        # This would be populated by actual safety event logging
-        health_status["safety_events_last_hour"] = 0
+        import redis as redis_lib
+
+        from core.config import settings
+        from safety.monitoring import SafetyMonitor
+
+        safety_redis = redis_lib.Redis.from_url(settings.redis_url, decode_responses=True)
+        safety_monitor = SafetyMonitor(safety_redis)
+        health_status["safety_events_last_hour"] = safety_monitor.get_total_event_count()
     except Exception as exc:
         log.error("safety_events_check_failed", error=str(exc))
+        health_status["safety_events_last_hour"] = 0
 
     # Return 503 if any critical dependency is down
     if health_status["status"] == "unhealthy":
