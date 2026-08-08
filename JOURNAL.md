@@ -122,3 +122,97 @@ all unrelated to this change — see PR description for the documented
 baseline; my changes introduce zero new failures.)
 
 **Draft PR feedback received from:** none
+
+## Week 10 — Iteration & reflection
+
+### Reviewer feedback
+
+**Feedback received:** [ ] Yes  [x] No — still awaiting review
+
+**Summary of feedback:**
+No reviewer or maintainer comments came in on [PR #535](https://github.com/ascherj/pathreview/pull/535)
+during Week 10. I re-checked via `gh pr view 535 --json comments,reviews`
+before writing this entry and both arrays are empty. This lines up with the
+Su26 course note that reviewer feedback isn't a live feature this term. My
+Week 9 entry above already records that no feedback had come in on the draft
+PR either, so this has been consistent for the full week the PR has been
+open.
+
+**How you responded:**
+N/A — nothing to respond to. Since no reviewer flagged the two open design
+questions I called out in the PR description (whether the `redis_host`/
+`redis_port` bug and the "last hour" vs. actual-24h-TTL gap should be
+separate follow-up issues), I re-read my own reasoning in `PLAN.md` and the
+PR body one more time with fresh eyes to sanity-check the decisions instead
+of leaving them unexamined. I still think both were right: fixing
+`redis_host`/`redis_port` would have meant touching an unrelated dependency
+check outside this issue's scope, and reworking `SafetyMonitor`'s storage to
+do real hourly bucketing would have been a materially bigger change than a
+single-field wiring fix. I left both as documented, filed-for-later items
+rather than changing anything.
+
+---
+
+### Reflection
+
+**What was harder than you expected?**
+Deciding what *not* to fix was harder than writing the fix itself. Once I
+was inside `safety/monitoring.py` and `health.py`, I kept noticing adjacent
+problems — the `redis_host`/`redis_port` bug, the fact that "last hour" is
+really "last ~24h," a couple of unrelated lint issues, 54 already-failing
+tests across the suite. Every one of those was a legitimate, fixable thing,
+and it would have been easy to let the PR balloon into a general cleanup
+pass. Scoping myself to exactly what issue #68 asked for, and documenting
+the rest instead of touching it, took more discipline than the actual Redis
+plumbing did.
+
+**What did you learn about working in a large codebase?**
+The biggest difference from a solo project is that "correct" isn't just
+"the code does what I want" — it's "the code does what I want without
+silently changing the meaning of something else that already exists."
+`SafetyMonitor.get_event_count()` and its Redis keys were already load-bearing
+for other code paths, so I had to read `log_event`'s TTL behavior carefully
+before I could trust that summing counts across event types wouldn't
+misrepresent what "last hour" actually means. In my own projects I'd have
+just renamed the field. Here, a pre-existing 54-failure/178-lint-error
+baseline meant I also had to establish, and document, what was already
+broken before I started — otherwise I couldn't credibly claim my change
+introduced zero new failures.
+
+**How did AI tools help — and where did they fall short?**
+AI assistance was most useful for the fast, mechanical parts: writing the
+Redis-mocking boilerplate across 14 tests, generating the multiple-event-type
+summation test cases I might not have thought to enumerate by hand, and
+double-checking my ruff/mypy cleanup didn't touch anything outside
+`safety/monitoring.py`. It fell short on the judgment calls that actually
+mattered for this issue — whether to fix the `redis_host`/`redis_port` bug
+inline or file it separately, and whether "last hour" needed to be taken
+literally. Those required actually reading how the field is used elsewhere
+and reasoning about scope and honesty (mislabeling a 24h count as "last
+hour" would be worse than documenting the real behavior), which isn't
+something I was comfortable delegating — I made those calls myself and used
+AI to help me stress-test the reasoning after the fact, not to make the
+decision.
+
+**What would you do differently if you started over?**
+I'd try to get a mentor's read on the `redis_host`/`redis_port` and
+hourly-bucketing questions *during* Week 8 planning instead of resolving
+them solo in Week 9 — I ended up making both scope calls without external
+input because no feedback loop was actually available this term, and while
+I stand by the decisions, I'd have more confidence in them with a second
+opinion before they shipped. I'd also start the pre-existing-failures survey
+(the 54 failing tests, 178 lint errors) earlier — I didn't establish that
+baseline until I was deep into implementation, and doing it during
+reproduction in Week 8 would have made the "zero new failures" claim easier
+to verify from the start.
+
+**What are you most proud of from this module?**
+Choosing to document the "last hour" semantics honestly instead of quietly
+relabeling the field or doing a bigger storage rework to make the name
+technically true. It would have been easy to either ship a comment-free fix
+that implies more precision than the system has, or to scope-creep into
+rewriting `SafetyMonitor`'s TTL/bucketing scheme to match the field name.
+Neither felt right, and writing the real behavior into the code comments and
+PR description — even though it's a slightly awkward thing to admit — is the
+part of this contribution I'd point to as representative of how I want to
+work in other people's codebases.
